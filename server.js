@@ -137,7 +137,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/health' || p === '/api/health') return await handleHealth(res);
     if (p === '/api/report' && req.method === 'POST') return await handleReport(req, res);
     if (p === '/api/reports' && req.method === 'GET') return await handleReportList(res, urlObj);
-    if (req.method === 'GET') return serveStatic(res, p);
+    if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(res, p);
     res.writeHead(405); res.end();
   } catch (e) {
     console.error('unhandled:', e);
