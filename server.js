@@ -25,6 +25,12 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
 });
 
+// Neon 풀러가 유휴 커넥션을 끊으면 idle 클라이언트가 'error'를 낸다.
+// 핸들러가 없으면 Node 프로세스 전체가 죽으므로 반드시 삼킨다.
+pool.on('error', (err) => {
+  console.error('pg pool idle error (ignored):', err.message);
+});
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
