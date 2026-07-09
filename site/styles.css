@@ -40,9 +40,10 @@
   --space-5: 22px;
   --space-6: 32px;
 
-  /* --- 타일 치수 토큰 (스프라이트 셀 비율 166:248 ≈ 0.669에 맞춤) --- */
-  --tile-w: 36px;
-  --tile-h: 54px;
+  /* --- 타일 치수 토큰 (스프라이트 셀 비율 166:248 ≈ 0.669에 맞춤) ---
+     --tile-h는 항상 --tile-w에서 비율로 파생(calc). --tile-w만 바꾸면 비율 유지. */
+  --tile-w: 30px;
+  --tile-h: calc(var(--tile-w) * 248 / 166);
   --tile-radius: 6px;
   --tile-gap: var(--space-1);
   --tile-num-size: 22px;
@@ -78,8 +79,8 @@
 
 @media (min-width: 768px) {
   :root {
-    --tile-w: 42px;
-    --tile-h: 62px;
+    --tile-w: 36px;
+    /* --tile-h는 root의 calc가 --tile-w를 따라 자동 갱신 */
     --tile-num-size: 26px;
     --tile-suit-size: 15px;
     --tile-honor-size: 28px;
@@ -410,15 +411,25 @@ input:disabled { cursor: not-allowed; }
   gap: var(--tile-gap);
 }
 
-/* 손패: 13장 + 쯔모(간격 분리) */
+/* 손패: 13장 + 쯔모(간격 분리). 모바일에서도 한 줄 유지 */
 .hand {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: flex-end;
   gap: var(--tile-gap);
+  /* 14장(13+쯔모)이 한 줄에 들어가도록 손패 한정으로 타일 폭 유동화.
+     120px 보정 = 페이지 좌우 패딩(32) + 카드 좌우 패딩(32) + 타일간격·쯔모간격 여유(56).
+     --tile-h를 .hand에서도 재선언해야 이 지역 --tile-w를 기준으로 비율이 계산됨
+     (커스텀 프로퍼티 var()는 선언된 스코프에서 치환되어 해석값이 상속되므로). */
+  --tile-w: min(30px, calc((100vw - 120px) / 14));
+  --tile-h: calc(var(--tile-w) * 248 / 166);
 }
+/* 쯔모 간격도 고정 22px 대신 타일 크기에 비례 */
 .hand .tsumo {
-  margin-left: var(--space-5);
+  margin-left: calc(var(--tile-w) * 0.5);
+}
+@media (min-width: 768px) {
+  .hand { --tile-w: min(36px, calc((100vw - 120px) / 14)); }
 }
 
 /* 부른 패 세트(퐁/치) */
@@ -730,7 +741,7 @@ input:disabled { cursor: not-allowed; }
   display: inline-flex;
   padding: 0;
   margin: 0;
-  border: 2px solid transparent;
+  border: 0;                 /* 너비 증가 방지 — 강조/포커스는 box-shadow 링으로 */
   border-radius: var(--tile-radius);
   background: none;
   line-height: 0;
@@ -747,8 +758,7 @@ input:disabled { cursor: not-allowed; }
 .tile-btn:disabled { cursor: default; }
 .tile-btn.is-correct { box-shadow: 0 0 0 3px var(--color-correct); }
 .tile-btn.is-wrong { box-shadow: 0 0 0 3px var(--color-wrong); }
-/* 쯔모패(우측 분리)가 button일 때도 간격 유지 */
-.hand--selectable .tile-btn.tsumo { margin-left: var(--space-5); }
+/* 쯔모패(우측 분리) button도 위 .hand .tsumo 규칙으로 간격 적용됨 */
 
 /* --- 통계 표 --- */
 .table-scroll { overflow-x: auto; }
