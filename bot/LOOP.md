@@ -8,7 +8,11 @@
 - 테이블: `questions`(문제은행), `reports`(이의 제기), `bot_runs`(실행 이력) — 정의는 `bot/schema.sql`
 - 배포 사이트는 `/api/questions`로 DB에서 직접 읽는다. `site/js/questions.js`는 file:// 폴백.
 - 문제 스키마·패 표기법: `site/SCHEMA.md` (id는 유형접두어 d/y/s/r + 일련번호)
-- DB 접근 예 (Python): `psycopg` / (Node): `pg` — 둘 다 로컬 설치돼 있음.
+- DB 접근: 항상 `bot/db.js`의 `createDb()`를 쓴다 (`await db.query(text, params)` → `{rows}`).
+  - 기본은 pg(raw TCP 5432). **클라우드 샌드박스는 5432 egress가 막혀 있으므로 `NEON_HTTP=1`을
+    export 하고 실행할 것** — HTTPS(443) 기반 `@neondatabase/serverless`로 전환된다.
+  - ad-hoc SQL도 psql/psycopg 등 raw TCP 클라이언트 대신 `node -e`로 `bot/db.js`를 경유할 것.
+    예: `NEON_HTTP=1 node -e "require('./bot/db').createDb().query('select 1').then(r=>console.log(r.rows))"`
 
 ## 실행 절차
 

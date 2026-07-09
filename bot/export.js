@@ -8,10 +8,9 @@
  * 사용: node bot/export.js
  */
 'use strict';
-require('./env');
 const fs = require('fs');
 const path = require('path');
-const { Pool } = require('pg');
+const { createDb } = require('./db');
 const { validateAll } = require('./validate');
 
 const OUT = path.join(__dirname, '..', 'site', 'js', 'questions.js');
@@ -24,11 +23,11 @@ function js(v) {
 }
 
 (async () => {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
-  const r = await pool.query(
+  const db = createDb();
+  const r = await db.query(
     "SELECT id,type,difficulty,prompt,hand,draw,dora,melds,discards,choices,answer,explanation FROM questions WHERE status='active' ORDER BY id"
   );
-  await pool.end();
+  await db.end();
 
   const qs = r.rows.map((row) => {
     const q = { id: row.id, type: row.type, difficulty: row.difficulty, prompt: row.prompt, hand: row.hand || '' };

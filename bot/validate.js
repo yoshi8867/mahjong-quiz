@@ -141,12 +141,10 @@ if (require.main === module) {
       const data = JSON.parse(require('fs').readFileSync(process.argv[2], 'utf-8'));
       list = Array.isArray(data) ? data : [data];
     } else {
-      require('./env');
-      const { Pool } = require('pg');
-      const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
-      const r = await pool.query("SELECT id,type,difficulty,prompt,hand,draw,dora,melds,discards,choices,answer,explanation FROM questions WHERE status='active' ORDER BY id");
+      const db = require('./db').createDb();
+      const r = await db.query("SELECT id,type,difficulty,prompt,hand,draw,dora,melds,discards,choices,answer,explanation FROM questions WHERE status='active' ORDER BY id");
       list = r.rows.map((row) => ({ ...row, hand: row.hand || '', melds: row.melds || undefined, draw: row.draw || undefined }));
-      await pool.end();
+      await db.end();
     }
     process.exit(validateAll(list) ? 0 : 1);
   })().catch((e) => { console.error(e); process.exit(1); });
