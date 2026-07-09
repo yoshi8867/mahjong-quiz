@@ -99,6 +99,31 @@ async function handleReport(req, res) {
   }
 }
 
+// DB의 active 문제은행 → 사이트 스키마(JS 객체) 형태로 반환
+async function handleQuestions(res) {
+  try {
+    const r = await pool.query(
+      "SELECT id, type, difficulty, prompt, hand, draw, dora, melds, discards, choices, answer, explanation FROM questions WHERE status = 'active' ORDER BY id"
+    );
+    const list = r.rows.map((row) => {
+      const q = {
+        id: row.id, type: row.type, difficulty: row.difficulty,
+        prompt: row.prompt, hand: row.hand || '',
+        choices: row.choices, answer: row.answer, explanation: row.explanation,
+      };
+      if (row.draw) q.draw = row.draw;
+      if (row.dora) q.dora = row.dora;
+      if (row.melds) q.melds = row.melds;
+      if (row.discards) q.discards = row.discards;
+      return q;
+    });
+    sendJson(res, 200, list);
+  } catch (e) {
+    console.error('questions query failed:', e.message);
+    sendJson(res, 500, { error: 'db error' });
+  }
+}
+
 async function handleReportList(res, urlObj) {
   const status = urlObj.searchParams.get('status') || 'pending';
   if (!['pending', 'accepted', 'rejected'].includes(status)) {
@@ -136,6 +161,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (p === '/health' || p === '/api/health') return await handleHealth(res);
     if (p === '/api/report' && req.method === 'POST') return await handleReport(req, res);
+    if (p === '/api/questions' && req.method === 'GET') return await handleQuestions(res);
     if (p === '/api/reports' && req.method === 'GET') return await handleReportList(res, urlObj);
     if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(res, p);
     res.writeHead(405); res.end();

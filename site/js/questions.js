@@ -1,32 +1,18 @@
 /*
- * questions.js — 문제은행 (샘플 30문제)
+ * questions.js — 문제은행 (bot/export.js 가 DB에서 생성한 파일. 직접 수정 금지)
  *
- * 스키마(상세는 SCHEMA.md):
- *   id           문자열, 고유
- *   type         "discard" | "yaku" | "score" | "rule"
- *   difficulty   1~5 정수
- *   prompt       지문(문자열)
- *   hand         표준 패 표기(문자열). 개념 문제는 "" 허용.
- *   draw         (선택, discard 전용) 방금 쯔모한 패 1장 표기(예 "5s"). hand에 포함된
- *                패여야 하며, 렌더 시 hand에서 그 1장을 분리해 우측에 간격을 두고 표시.
- *   dora         (선택) 도라 표시패 표기
- *   melds        (선택) 부른 패 배열. 각 요소 = 접두어(p퐁/c치/k깡) + 표기
- *   discards     (선택) 버림패 강 표기
- *   choices      길이 4 배열. 패 표기면 타일, 아니면 텍스트로 렌더
- *   answer       정답 index 0~3
- *   explanation  해설(문자열)
- *
+ * 원본은 Neon DB의 questions 테이블이다. 배포 사이트는 /api/questions 로
+ * DB에서 직접 읽고, 이 파일은 file:// 폴백용. 스키마 상세는 SCHEMA.md 참조.
  * 전역 노출: window.MahjongQuestions
  */
 (function (global) {
   'use strict';
 
   var QUESTIONS = [
-    /* ===================== DISCARD (타패/何切る) 8 ===================== */
     {
       id: 'd001', type: 'discard', difficulty: 1,
       prompt: '무엇을 버리는 것이 가장 좋을까?',
-      hand: '234m567m234p7899s3z', dora: '1p', draw: '9s',
+      hand: '234m567m234p7899s3z', draw: '9s', dora: '1p',
       choices: ['3z', '9s', '7s', '2m'], answer: 0,
       explanation: '3z(서)는 어느 멘쯔에도 붙지 않는 고립 객풍패다. 버리면 7899s가 99s 머리 + 78s로 6-9s 양면 텐파이가 된다. 9s를 버리면 3z 단기 대기로 손해다.'
     },
@@ -61,7 +47,7 @@
     {
       id: 'd006', type: 'discard', difficulty: 4,
       prompt: '가장 넓은 대기를 남기는 타패는?',
-      hand: '234m34567p234s55s9m', dora: '2p', draw: '7p',
+      hand: '234m34567p234s55s9m', draw: '7p', dora: '2p',
       choices: ['3p', '9m', '7p', '5s'], answer: 1,
       explanation: '통수 34567p는 2-5-8p 삼면 대기 형태다. 고립된 9m을 버리면 234m·234s 두 멘쯔 + 55s 머리 + 34567p 삼면장으로 최고의 텐파이. 통수를 건드리면 대기가 좁아진다.'
     },
@@ -79,117 +65,6 @@
       choices: ['6m', '1z', '2m', '5s'], answer: 1,
       explanation: '만수 23456m은 1-4-7m 삼면 대기다. 고립 1z를 버리면 789m·234p 멘쯔 + 55s 머리 + 23456m 삼면장으로 핑후 삼면 텐파이. 만수를 깨면 삼면 대기가 무너진다.'
     },
-
-    /* ===================== YAKU (역 판정) 8 ===================== */
-    {
-      id: 'y001', type: 'yaku', difficulty: 1,
-      prompt: '멘젠으로 화료했다. 성립하는 역은?',
-      hand: '234m555m22p345p678s',
-      choices: ['탕야오', '핑후', '삼안커', '역패'], answer: 0,
-      explanation: '모든 패가 2~8의 수패(자패·1·9 없음)로만 구성 → 탕야오. 555m 커쯔가 있어 핑후는 성립하지 않는다.'
-    },
-    {
-      id: 'y002', type: 'yaku', difficulty: 1,
-      prompt: '中을 퐁한 손패다. 성립하는 역은?',
-      hand: '234m567m234p55s', melds: ['p777z'],
-      choices: ['역패(중)', '탕야오', '핑후', '찬타'], answer: 0,
-      explanation: '中(7z) 커쯔 = 삼원패 역패 1판. 자패가 있어 탕야오는 아니고, 부른 손이라 핑후도 불가.'
-    },
-    {
-      id: 'y003', type: 'yaku', difficulty: 2,
-      prompt: '멘젠·양면 대기로 론 화료(99s는 자패 아닌 삭수 머리). 확정 역은?',
-      hand: '123m567m234p456p99s',
-      choices: ['핑후', '탕야오', '일기통관', '찬타'], answer: 0,
-      explanation: '4멘쯔 모두 슌쯔 + 역패 아닌 머리(99s) + 양면 대기 → 핑후. 1m·9s가 있어 탕야오는 아니다.'
-    },
-    {
-      id: 'y004', type: 'yaku', difficulty: 3,
-      prompt: '멘젠 손패에 성립하는 역은?',
-      hand: '112233m456p678p55s',
-      choices: ['이페코', '삼색동순', '일기통관', '역패'], answer: 0,
-      explanation: '112233m = 123m 슌쯔가 두 벌 → 이페코(멘젠 한정 1판). 세 수트 같은 배열(삼색)도, 123-456-789(일기통관)도 아니다.'
-    },
-    {
-      id: 'y005', type: 'yaku', difficulty: 3,
-      prompt: '이 손패의 대표 역은?',
-      hand: '234m234p234s567m99s',
-      choices: ['삼색동순', '일기통관', '이페코', '찬타'], answer: 0,
-      explanation: '234가 만·통·삭 세 수트에 모두 있음 → 삼색동순(멘젠 2판).'
-    },
-    {
-      id: 'y006', type: 'yaku', difficulty: 4,
-      prompt: '이 손패의 대표 역은?',
-      hand: '123456789m234p55s',
-      choices: ['일기통관', '삼색동순', '청일색', '이페코'], answer: 0,
-      explanation: '만수 123-456-789가 한 수트로 완성 → 일기통관(멘젠 2판). 통수·삭수가 섞여 청일색은 아니다.'
-    },
-    {
-      id: 'y007', type: 'yaku', difficulty: 4,
-      prompt: '123s를 치한 손패다. 성립하는 역은?',
-      hand: '456s789s234s11z', melds: ['c123s'],
-      choices: ['혼일색', '청일색', '삼색동순', '치또이쯔'], answer: 0,
-      explanation: '삭수 + 자패(東)로만 구성 → 혼일색. 부른 혼일색은 2판. 자패가 있어 청일색은 아니다.'
-    },
-    {
-      id: 'y008', type: 'yaku', difficulty: 5,
-      prompt: '이 손패의 대표(최고 판수) 역은?',
-      hand: '234p345p678p789p99p',
-      choices: ['청일색', '혼일색', '일기통관', '삼색동순'], answer: 0,
-      explanation: '모든 패가 통수 한 종류 → 청일색(멘젠 6판). 자패가 없어 혼일색이 아니고, 123-456-789 배열이 아니라 일기통관도 아니다.'
-    },
-
-    /* ===================== SCORE (점수 계산) 7 ===================== */
-    {
-      id: 's001', type: 'score', difficulty: 1,
-      prompt: '자가(비장) 30부 1판을 론으로 화료했다. 상대가 지불하는 점수는?',
-      hand: '',
-      choices: ['1000점', '1300점', '1500점', '2000점'], answer: 0,
-      explanation: '기본점 = 30 × 2^(2+1) = 240. 자가 론은 ×4 = 960 → 100단위 올림 = 1000점.'
-    },
-    {
-      id: 's002', type: 'score', difficulty: 2,
-      prompt: '자가 40부 2판 론. 점수는?',
-      hand: '',
-      choices: ['2000점', '2600점', '2900점', '3900점'], answer: 1,
-      explanation: '기본점 = 40 × 2^(2+2) = 640. 자가 론 ×4 = 2560 → 올림 2600점.'
-    },
-    {
-      id: 's003', type: 'score', difficulty: 3,
-      prompt: '장가(딜러) 30부 3판 론. 점수는?',
-      hand: '',
-      choices: ['4500점', '5200점', '5800점', '7700점'], answer: 2,
-      explanation: '기본점 = 30 × 2^(2+3) = 960. 장가 론 ×6 = 5760 → 올림 5800점.'
-    },
-    {
-      id: 's004', type: 'score', difficulty: 3,
-      prompt: '자가 만관 쯔모. 각 플레이어의 지불액(자·자·장)은?',
-      hand: '',
-      choices: ['2000/2000/4000', '2600/2600/5200', '3000/3000/6000', '1500/1500/3000'], answer: 0,
-      explanation: '만관 기본점 2000 고정. 자가 쯔모 시 비장은 각 2000, 장가는 4000 지불 → 2000/2000/4000(합 8000).'
-    },
-    {
-      id: 's005', type: 'score', difficulty: 4,
-      prompt: '자가 40부 3판 론. 점수는?',
-      hand: '',
-      choices: ['3900점', '5200점', '6400점', '7700점'], answer: 1,
-      explanation: '기본점 = 40 × 2^(2+3) = 1280. 자가 론 ×4 = 5120 → 올림 5200점. (절상 만관을 쓰지 않는 표준 룰 기준.)'
-    },
-    {
-      id: 's006', type: 'score', difficulty: 4,
-      prompt: '자가 6판(하네만) 론. 점수는?',
-      hand: '',
-      choices: ['8000점', '12000점', '16000점', '18000점'], answer: 1,
-      explanation: '6~7판은 하네만. 자가 하네만 론은 12000점 고정.'
-    },
-    {
-      id: 's007', type: 'score', difficulty: 5,
-      prompt: '장가(딜러) 40부 3판 쯔모. 각 비장이 지불하는 점수는?',
-      hand: '',
-      choices: ['2600점 올(all)', '2000점 올(all)', '3900점 올(all)', '2300점 올(all)'], answer: 0,
-      explanation: '기본점 = 40 × 2^(2+3) = 1280. 장가 쯔모는 세 명이 각 ×2 = 2560 → 올림 2600점씩(2600 올).'
-    },
-
-    /* ===================== RULE (룰/판단) 7 ===================== */
     {
       id: 'r001', type: 'rule', difficulty: 1,
       prompt: '리치 선언 조건으로 옳지 않은 설명은?',
@@ -239,7 +114,114 @@
       hand: '',
       choices: ['창깡(槍槓)으로 론 가능', '어떤 경우에도 불가', '안깡도 창깡 대상이 된다', '점수가 붙지 않는다'], answer: 0,
       explanation: '가깡하려는 패로 화료하면 창깡(槍槓) 1판이 붙어 론할 수 있다. 원칙적으로 안깡은 창깡 대상이 아니다(국사무쌍만 예외).'
-    }
+    },
+    {
+      id: 's001', type: 'score', difficulty: 1,
+      prompt: '자가(비장) 30부 1판을 론으로 화료했다. 상대가 지불하는 점수는?',
+      hand: '',
+      choices: ['1000점', '1300점', '1500점', '2000점'], answer: 0,
+      explanation: '기본점 = 30 × 2^(2+1) = 240. 자가 론은 ×4 = 960 → 100단위 올림 = 1000점.'
+    },
+    {
+      id: 's002', type: 'score', difficulty: 2,
+      prompt: '자가 40부 2판 론. 점수는?',
+      hand: '',
+      choices: ['2000점', '2600점', '2900점', '3900점'], answer: 1,
+      explanation: '기본점 = 40 × 2^(2+2) = 640. 자가 론 ×4 = 2560 → 올림 2600점.'
+    },
+    {
+      id: 's003', type: 'score', difficulty: 3,
+      prompt: '장가(딜러) 30부 3판 론. 점수는?',
+      hand: '',
+      choices: ['4500점', '5200점', '5800점', '7700점'], answer: 2,
+      explanation: '기본점 = 30 × 2^(2+3) = 960. 장가 론 ×6 = 5760 → 올림 5800점.'
+    },
+    {
+      id: 's004', type: 'score', difficulty: 3,
+      prompt: '자가 만관 쯔모. 각 플레이어의 지불액(자·자·장)은?',
+      hand: '',
+      choices: ['2000/2000/4000', '2600/2600/5200', '3000/3000/6000', '1500/1500/3000'], answer: 0,
+      explanation: '만관 기본점 2000 고정. 자가 쯔모 시 비장은 각 2000, 장가는 4000 지불 → 2000/2000/4000(합 8000).'
+    },
+    {
+      id: 's005', type: 'score', difficulty: 4,
+      prompt: '자가 40부 3판 론. 점수는?',
+      hand: '',
+      choices: ['3900점', '5200점', '6400점', '7700점'], answer: 1,
+      explanation: '기본점 = 40 × 2^(2+3) = 1280. 자가 론 ×4 = 5120 → 올림 5200점. (절상 만관을 쓰지 않는 표준 룰 기준.)'
+    },
+    {
+      id: 's006', type: 'score', difficulty: 4,
+      prompt: '자가 6판(하네만) 론. 점수는?',
+      hand: '',
+      choices: ['8000점', '12000점', '16000점', '18000점'], answer: 1,
+      explanation: '6~7판은 하네만. 자가 하네만 론은 12000점 고정.'
+    },
+    {
+      id: 's007', type: 'score', difficulty: 5,
+      prompt: '장가(딜러) 40부 3판 쯔모. 각 비장이 지불하는 점수는?',
+      hand: '',
+      choices: ['2600점 올(all)', '2000점 올(all)', '3900점 올(all)', '2300점 올(all)'], answer: 0,
+      explanation: '기본점 = 40 × 2^(2+3) = 1280. 장가 쯔모는 세 명이 각 ×2 = 2560 → 올림 2600점씩(2600 올).'
+    },
+    {
+      id: 'y001', type: 'yaku', difficulty: 1,
+      prompt: '멘젠으로 화료했다. 성립하는 역은?',
+      hand: '234m555m22p345p678s',
+      choices: ['탕야오', '핑후', '삼안커', '역패'], answer: 0,
+      explanation: '모든 패가 2~8의 수패(자패·1·9 없음)로만 구성 → 탕야오. 555m 커쯔가 있어 핑후는 성립하지 않는다.'
+    },
+    {
+      id: 'y002', type: 'yaku', difficulty: 1,
+      prompt: '中을 퐁한 손패다. 성립하는 역은?',
+      hand: '234m567m234p55s',
+      melds: ['p777z'],
+      choices: ['역패(중)', '탕야오', '핑후', '찬타'], answer: 0,
+      explanation: '中(7z) 커쯔 = 삼원패 역패 1판. 자패가 있어 탕야오는 아니고, 부른 손이라 핑후도 불가.'
+    },
+    {
+      id: 'y003', type: 'yaku', difficulty: 2,
+      prompt: '멘젠·양면 대기로 론 화료(99s는 자패 아닌 삭수 머리). 확정 역은?',
+      hand: '123m567m234p456p99s',
+      choices: ['핑후', '탕야오', '일기통관', '찬타'], answer: 0,
+      explanation: '4멘쯔 모두 슌쯔 + 역패 아닌 머리(99s) + 양면 대기 → 핑후. 1m·9s가 있어 탕야오는 아니다.'
+    },
+    {
+      id: 'y004', type: 'yaku', difficulty: 3,
+      prompt: '멘젠 손패에 성립하는 역은?',
+      hand: '112233m456p678p55s',
+      choices: ['이페코', '삼색동순', '일기통관', '역패'], answer: 0,
+      explanation: '112233m = 123m 슌쯔가 두 벌 → 이페코(멘젠 한정 1판). 세 수트 같은 배열(삼색)도, 123-456-789(일기통관)도 아니다.'
+    },
+    {
+      id: 'y005', type: 'yaku', difficulty: 3,
+      prompt: '이 손패의 대표 역은?',
+      hand: '234m234p234s567m99s',
+      choices: ['삼색동순', '일기통관', '이페코', '찬타'], answer: 0,
+      explanation: '234가 만·통·삭 세 수트에 모두 있음 → 삼색동순(멘젠 2판).'
+    },
+    {
+      id: 'y006', type: 'yaku', difficulty: 4,
+      prompt: '이 손패의 대표 역은?',
+      hand: '123456789m234p55s',
+      choices: ['일기통관', '삼색동순', '청일색', '이페코'], answer: 0,
+      explanation: '만수 123-456-789가 한 수트로 완성 → 일기통관(멘젠 2판). 통수·삭수가 섞여 청일색은 아니다.'
+    },
+    {
+      id: 'y007', type: 'yaku', difficulty: 4,
+      prompt: '123s를 치한 손패다. 성립하는 역은?',
+      hand: '456s789s234s11z',
+      melds: ['c123s'],
+      choices: ['혼일색', '청일색', '삼색동순', '치또이쯔'], answer: 0,
+      explanation: '삭수 + 자패(東)로만 구성 → 혼일색. 부른 혼일색은 2판. 자패가 있어 청일색은 아니다.'
+    },
+    {
+      id: 'y008', type: 'yaku', difficulty: 5,
+      prompt: '이 손패의 대표(최고 판수) 역은?',
+      hand: '234p345p678p789p99p',
+      choices: ['청일색', '혼일색', '일기통관', '삼색동순'], answer: 0,
+      explanation: '모든 패가 통수 한 종류 → 청일색(멘젠 6판). 자패가 없어 혼일색이 아니고, 123-456-789 배열이 아니라 일기통관도 아니다.'
+    },
   ];
 
   global.MahjongQuestions = QUESTIONS;

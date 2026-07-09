@@ -329,6 +329,7 @@
       body.textContent = current.explanation;
       exp.appendChild(verdict);
       exp.appendChild(body);
+      appendReportUI(exp, current.id);
       exp.hidden = false;
     }
 
@@ -373,6 +374,73 @@
 
     el('next-btn').addEventListener('click', next);
     next();
+  }
+
+  /* ==================== 이의 제기 ==================== */
+  // 해설 아래에 "이의 제기" 토글 + 폼을 붙인다. file://에서는 API가 없으므로 표시하지 않음.
+  function appendReportUI(container, questionId) {
+    if (global.location.protocol === 'file:') return;
+
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'report-toggle';
+    toggle.textContent = '문제가 이상한가요? 이의 제기';
+
+    var form = document.createElement('div');
+    form.className = 'report-form';
+    form.hidden = true;
+
+    var ta = document.createElement('textarea');
+    ta.className = 'report-text';
+    ta.rows = 3;
+    ta.maxLength = 2000;
+    ta.placeholder = '어떤 점이 잘못됐는지 적어주세요 (예: 정답이 5s가 아니라 6s인 이유…)';
+
+    var submit = document.createElement('button');
+    submit.type = 'button';
+    submit.className = 'primary-btn report-submit';
+    submit.textContent = '제출';
+
+    var msg = document.createElement('p');
+    msg.className = 'report-msg';
+
+    toggle.addEventListener('click', function () {
+      form.hidden = !form.hidden;
+      if (!form.hidden) ta.focus();
+    });
+
+    submit.addEventListener('click', function () {
+      var content = ta.value.trim();
+      if (content.length < 5) {
+        msg.textContent = '내용을 5자 이상 적어주세요.';
+        return;
+      }
+      submit.disabled = true;
+      msg.textContent = '전송 중…';
+      fetch('/api/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionId: questionId, content: content })
+      }).then(function (r) {
+        if (r.status === 201) return r.json().then(function (d) {
+          msg.textContent = '접수됐습니다 (#' + d.id + '). 검토 후 반영됩니다.';
+          ta.disabled = true;
+        });
+        return r.json().then(function (d) {
+          msg.textContent = '접수 실패: ' + (d.error || r.status);
+          submit.disabled = false;
+        });
+      }).catch(function () {
+        msg.textContent = '접수 실패: 네트워크 오류';
+        submit.disabled = false;
+      });
+    });
+
+    form.appendChild(ta);
+    form.appendChild(submit);
+    form.appendChild(msg);
+    container.appendChild(toggle);
+    container.appendChild(form);
   }
 
   /* ==================== 공용 렌더 헬퍼 ==================== */
@@ -694,11 +762,27 @@
   }
 
   /* ==================== 디스패치 ==================== */
+  // 서버가 있으면(/api/questions) DB의 최신 문제은행으로 교체 후 초기화.
+  // 실패(file:// 또는 API 다운) 시 정적 questions.js 폴백.
+  function loadQuestions() {
+    if (global.location.protocol === 'file:' || !global.fetch) {
+      return Promise.resolve();
+    }
+    return fetch('/api/questions').then(function (r) {
+      if (!r.ok) throw new Error(String(r.status));
+      return r.json();
+    }).then(function (list) {
+      if (Array.isArray(list) && list.length > 0) global.MahjongQuestions = list;
+    }).catch(function () { /* 정적 폴백 */ });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
-    var page = document.body.getAttribute('data-page');
-    if (page === 'home') { initHome(); renderHomeSummary(); }
-    else if (page === 'quiz') initQuiz();
-    else if (page === 'review') initReview();
-    else if (page === 'stats') initStats();
+    loadQuestions().then(function () {
+      var page = document.body.getAttribute('data-page');
+      if (page === 'home') { initHome(); renderHomeSummary(); }
+      else if (page === 'quiz') initQuiz();
+      else if (page === 'review') initReview();
+      else if (page === 'stats') initStats();
+    });
   });
 })(window);
