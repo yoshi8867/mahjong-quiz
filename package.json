@@ -1,0 +1,17 @@
+{
+  "name": "mahjong-quiz",
+  "version": "1.0.0",
+  "private": true,
+  "description": "리치마작 학습 사이트 — 정적 사이트 + 이의 제기 API",
+  "scripts": {
+    "start": "node server.js",
+    "export": "node bot/export.js",
+    "validate": "node bot/validate.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
+  }
+}
