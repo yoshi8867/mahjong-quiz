@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>리치마작 4지선다 학습 — 홈</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="home">
+  <div class="page quiz-wrap">
+    <header class="site-header">
+      <h1>리치마작 4지선다 학습</h1>
+      <p>유형과 난이도를 골라 문제를 풀어 보세요. 오답은 자동으로 기록됩니다.</p>
+      <nav class="topnav" aria-label="주요 이동">
+        <a href="index.html" aria-current="page">홈</a>
+        <a href="review.html">오답 노트</a>
+        <a href="stats.html">통계</a>
+        <a href="showcase.html">타일 쇼케이스</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="card" aria-labelledby="setup-title">
+        <h2 id="setup-title">퀴즈 설정</h2>
+
+        <form id="setup-form" onsubmit="return false;">
+          <fieldset class="filter-set">
+            <legend>문제 유형</legend>
+            <div class="check-list">
+              <label>
+                <input type="checkbox" id="type-all" checked /> 전체
+              </label>
+              <label>
+                <input type="checkbox" name="qtype" value="discard" checked /> 타패(何切る)
+              </label>
+              <label>
+                <input type="checkbox" name="qtype" value="yaku" checked /> 역 판정
+              </label>
+              <label>
+                <input type="checkbox" name="qtype" value="score" checked /> 점수 계산
+              </label>
+              <label>
+                <input type="checkbox" name="qtype" value="rule" checked /> 룰 판단
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="filter-set">
+            <legend>난이도 범위</legend>
+            <div class="range-row">
+              <label for="diff-min">최소</label>
+              <select id="diff-min">
+                <option value="1" selected>1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+              <span aria-hidden="true">~</span>
+              <label for="diff-max">최대</label>
+              <select id="diff-max">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5" selected>5</option>
+              </select>
+            </div>
+          </fieldset>
+
+          <p class="control-value">현재 조건에 맞는 문제: <strong id="pool-count">0</strong>개</p>
+          <p class="warning-text" id="start-warning" hidden>
+            선택한 조건에 맞는 문제가 없습니다. 유형이나 난이도 범위를 조정해 주세요.
+          </p>
+
+          <button type="button" class="primary-btn" id="start-btn">퀴즈 시작</button>
+        </form>
+      </section>
+
+      <section class="card" id="home-summary" aria-labelledby="summary-title">
+        <h2 id="summary-title">나의 학습 요약</h2>
+        <dl class="summary-grid">
+          <div class="summary-item">
+            <dt>전체 정답률</dt>
+            <dd id="summary-accuracy">기록 없음</dd>
+          </div>
+          <div class="summary-item">
+            <dt>오답 노트</dt>
+            <dd id="summary-wrong">0건</dd>
+          </div>
+          <div class="summary-item">
+            <dt>가장 약한 유형</dt>
+            <dd id="summary-weak">-</dd>
+          </div>
+        </dl>
+        <p class="summary-links">
+          <a href="review.html" class="primary-btn">오답 노트</a>
+          <a href="stats.html" class="primary-btn">통계 보기</a>
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>리치마작 학습 — 서버 없이 브라우저(localStorage)에 진행 상태가 저장됩니다.</p>
+    </footer>
+  </div>
+
+  <script src="js/tiles.js"></script>
+  <script src="js/questions.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>타일 쇼케이스 — 리치마작 학습</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <h1>타일 쇼케이스</h1>
+      <p>마작패 렌더링 두 방식(유니코드 글리프 vs CSS 커스텀 타일)과 레이아웃 프리미티브 검증 페이지</p>
+    </header>
+
+    <!-- 쇼케이스 전용 검토 컨트롤 (퀴즈 본편에는 없음) -->
+    <section class="controls" aria-label="타일 디자인 검토 컨트롤">
+      <button type="button" class="controls-toggle" id="controls-toggle"
+              aria-expanded="true" aria-controls="controls-body">
+        <span>⚙ 타일 컨트롤</span>
+        <span class="controls-toggle-icon" aria-hidden="true">▲</span>
+      </button>
+      <div class="controls-body" id="controls-body">
+      <fieldset>
+        <legend>한자 서체 (만수·자패)</legend>
+        <p id="hanzi-svg-note" class="glyph-svg-note" hidden>SVG 이미지 모드에서는 한자를 사용하지 않습니다.</p>
+        <div id="font-options" class="font-options"></div>
+        <p class="control-value">현재 적용: <strong id="font-current">—</strong></p>
+      </fieldset>
+      <fieldset>
+        <legend>글리프 서체 (통수·삭수)</legend>
+        <div id="glyph-font-options" class="font-options"></div>
+        <p class="control-value">현재 적용: <strong id="glyph-font-current">—</strong></p>
+      </fieldset>
+      <fieldset>
+        <legend>통·삭 글리프 크기</legend>
+        <div class="slider-row">
+          <input
+            type="range"
+            id="glyph-slider"
+            min="80" max="220" step="5" value="85"
+            aria-label="통수·삭수 글리프 크기(타일 높이 대비 %)"
+          />
+        </div>
+        <p class="control-value">현재 적용: <strong id="glyph-current">—</strong> (타일 높이 대비)</p>
+      </fieldset>
+      <fieldset id="glyph-mask-fieldset">
+        <legend>통·삭 글리프 미세조정 (캔버스)</legend>
+        <p id="glyph-svg-note" class="glyph-svg-note" hidden>SVG 이미지 모드에서는 마스크·링·도려내기 컨트롤을 사용하지 않습니다. (X/Y 오프셋·크기는 유효)</p>
+        <div class="slider-row">
+          <label for="off-x-slider">X 오프셋</label>
+          <input type="range" id="off-x-slider" min="-30" max="30" step="1" value="0" />
+          <span class="control-value"><strong id="off-x-current">0%</strong></span>
+        </div>
+        <div class="slider-row">
+          <label for="off-y-slider">Y 오프셋</label>
+          <input type="range" id="off-y-slider" min="-30" max="30" step="1" value="0" />
+          <span class="control-value"><strong id="off-y-current">0%</strong></span>
+        </div>
+        <div id="glyph-mode-group" class="font-options" role="radiogroup" aria-label="글리프 렌더 모드">
+          <label><input type="radio" name="glyph-mode" value="clip" /> 확대 클리핑</label>
+          <label><input type="radio" name="glyph-mode" value="mask" /> 테두리 마스크</label>
+        </div>
+        <div class="slider-row">
+          <label for="ring-thick-slider">링 두께(팽창)</label>
+          <input type="range" id="ring-thick-slider" min="0" max="8" step="0.25" value="2" />
+          <span class="control-value"><strong id="ring-thick-current">2%</strong></span>
+        </div>
+        <div class="slider-row">
+          <label for="ring-slider">구멍 크기(인셋)</label>
+          <input type="range" id="ring-slider" min="-10" max="25" step="0.5" value="8" />
+          <span class="control-value"><strong id="ring-current">8%</strong></span>
+        </div>
+        <div class="slider-row">
+          <label for="cut-x-slider">도려내기 X</label>
+          <input type="range" id="cut-x-slider" min="-15" max="15" step="0.5" value="0" />
+          <span class="control-value"><strong id="cut-x-current">0%</strong></span>
+        </div>
+        <div class="slider-row">
+          <label for="cut-y-slider">도려내기 Y</label>
+          <input type="range" id="cut-y-slider" min="-15" max="15" step="0.5" value="0" />
+          <span class="control-value"><strong id="cut-y-current">0%</strong></span>
+        </div>
+        <p class="control-value">모드: <strong id="mode-current">—</strong> (마스크 모드에서만 링 슬라이더 유효)</p>
+        <label class="ring-view-toggle">
+          <input type="checkbox" id="ring-view" /> 링 보기 (디버그 시각화)
+        </label>
+      </fieldset>
+      <fieldset>
+        <legend>적도라 * 마커 (캔버스)</legend>
+        <div class="slider-row">
+          <label for="star-mx-slider">만수 X</label>
+          <input type="range" id="star-mx-slider" min="-50" max="50" step="1" value="28" />
+          <span class="control-value"><strong id="star-mx-current">28%</strong></span>
+        </div>
+        <div class="slider-row">
+          <label for="star-my-slider">만수 Y</label>
+          <input type="range" id="star-my-slider" min="-50" max="50" step="1" value="-32" />
+          <span class="control-value"><strong id="star-my-current">-32%</strong></span>
+        </div>
+        <div class="slider-row">
+          <label for="star-px-slider">통수 X</label>
+          <input type="range" id="star-px-slider" min="-50" max="50" step="1" value="28" />
+          <span class="control-value"><strong id="star-px-current">28%</strong></span>
+        </div>
+        <div class="slider-row">
+          <label for="star-py-slider">통수 Y</label>
+          <input type="range" id="star-py-slider" min="-50" max="50" step="1" value="-32" />
+          <span class="control-value"><strong id="star-py-current">-32%</strong></span>
+        </div>
+        <div class="slider-row">
+          <label for="star-sx-slider">삭수 X</label>
+          <input type="range" id="star-sx-slider" min="-50" max="50" step="1" value="28" />
+          <span class="control-value"><strong id="star-sx-current">28%</strong></span>
+        </div>
+        <div class="slider-row">
+          <label for="star-sy-slider">삭수 Y</label>
+          <input type="range" id="star-sy-slider" min="-50" max="50" step="1" value="-32" />
+          <span class="control-value"><strong id="star-sy-current">-32%</strong></span>
+        </div>
+        <div class="slider-row">
+          <label for="star-size-slider">크기</label>
+          <input type="range" id="star-size-slider" min="10" max="40" step="1" value="22" />
+          <span class="control-value"><strong id="star-size-current">22%</strong></span>
+        </div>
+        <p class="control-value">기준점은 셀 중앙(중앙 + 오프셋), 빨강 산세리프.</p>
+      </fieldset>
+      <fieldset>
+        <legend>스프라이트 시트</legend>
+        <p class="control-value">현재 컨트롤 설정으로 tiles.png를 굽습니다.</p>
+        <p class="control-value" id="sprite-spec">시트 1494×1240px · 9열×5행 · 셀 166×248px</p>
+        <button type="button" id="png-save">PNG 저장 (tiles.png)</button>
+      </fieldset>
+      </div>
+    </section>
+
+    <main>
+      <!-- 0. 스프라이트 제너레이터 미리보기 -->
+      <section class="showcase-section" id="sec-spritegen" aria-labelledby="h-spritegen">
+        <h2 id="h-spritegen">스프라이트 시트 제너레이터 (미리보기 = 저장될 파일)</h2>
+        <p>9열 × 5행 그리드. 위 컨트롤(서체·글리프 크기)을 바꾸면 아래 캔버스가 즉시 다시 그려집니다. "PNG 저장"으로 내려받아 <code>site/assets/tiles.png</code>로 옮기면 스프라이트 모드가 활성화됩니다.</p>
+        <canvas id="sprite-canvas" class="sprite-canvas"></canvas>
+        <div id="debug-wrap" hidden>
+          <p class="compare-label">링 디버그 (마젠타 = 링 마스크) — 왼쪽부터: 링 단독 · 9p · 9s · 1p 오버레이. 이 캔버스는 PNG 저장에 포함되지 않습니다.</p>
+          <canvas id="debug-canvas" class="sprite-canvas"></canvas>
+        </div>
+      </section>
+
+      <!-- 0b. 스프라이트 모드 비교 -->
+      <section class="showcase-section" id="sec-sprite" aria-labelledby="h-sprite">
+        <h2 id="h-sprite">스프라이트 모드 (assets/tiles.png)</h2>
+        <p>구운 PNG를 background-image로 잘라 쓰는 최종 렌더 방식. 34종 + 적도라.</p>
+        <div id="sprite-status" class="sprite-status"></div>
+        <div class="compare-label">스프라이트 방식 — 34종</div>
+        <div id="sprite-row"></div>
+        <div class="compare-label">스프라이트 방식 — 적도라</div>
+        <div id="sprite-aka"></div>
+      </section>
+
+      <!-- 1. 34종 전체 비교 -->
+      <section class="showcase-section" id="sec-compare" aria-labelledby="h-compare">
+        <h2 id="h-compare">34종 전체 타일 — 유니코드 방식 vs CSS 커스텀 방식</h2>
+        <p>만수 1-9, 통수 1-9, 삭수 1-9, 자패 7종(동남서북·백발중) = 34종을 같은 순서로 두 줄 비교.</p>
+
+        <div class="compare-label">유니코드 글리프 (U+1F000~U+1F021)</div>
+        <div id="row-unicode"></div>
+
+        <div class="compare-label">CSS 커스텀 타일 (아이보리 몸체 + 그림자)</div>
+        <div id="row-css"></div>
+        <p class="control-value">※ 테두리 마스크와 GL-MahjongTile SVG 모드는 DOM 줄에 재현하지 않습니다 — 위 캔버스 미리보기에서 확인하세요.</p>
+      </section>
+
+      <!-- 2. 적도라 -->
+      <section class="showcase-section" id="sec-aka" aria-labelledby="h-aka">
+        <h2 id="h-aka">적도라(빨간 5) 구분</h2>
+        <p>일반 5(5m/5p/5s)와 적도라(0m/0p/0s)를 나란히. 두 방식 모두에서 적도라는 빨강으로 구분됩니다.</p>
+
+        <div class="compare-label">유니코드 방식</div>
+        <div id="aka-unicode"></div>
+
+        <div class="compare-label">CSS 커스텀 방식</div>
+        <div id="aka-css"></div>
+      </section>
+
+      <!-- 3. 회전 + 퐁/치 세트 -->
+      <section class="showcase-section" id="sec-meld" aria-labelledby="h-meld">
+        <h2 id="h-meld">90도 회전 타일 · 퐁/치 세트</h2>
+        <p>부른 패는 가져온 방향 1장을 눕혀(90도 회전) 표시합니다. 회전 타일은 눕힌 비율만큼 자리를 차지해 겹치지 않습니다.</p>
+
+        <div class="compare-label">단일 회전 샘플 (정립 vs 회전)</div>
+        <div id="rot-sample" class="tile-row"></div>
+
+        <div class="compare-label">퐁 세트 (中 3장, 1장 회전) / 치 세트 (123m, 1장 회전)</div>
+        <div id="meld-sample" class="tile-row"></div>
+      </section>
+
+      <!-- 4. 버림패 강 -->
+      <section class="showcase-section" id="sec-pond" aria-labelledby="h-pond">
+        <h2 id="h-pond">버림패 강 — 6장씩 줄바꿈</h2>
+        <p>한 줄에 최대 6장, 7번째부터 다음 줄로 줄바꿈됩니다.</p>
+        <div id="pond-sample"></div>
+      </section>
+
+      <!-- 5. 손패 + 쯔모 + 도라 -->
+      <section class="showcase-section" id="sec-hand" aria-labelledby="h-hand">
+        <h2 id="h-hand">손패 레이아웃 — 13장 + 쯔모 · 도라 표시패</h2>
+        <p>손패 13장은 균등 간격, 쯔모 1장은 간격을 벌려 분리합니다. 도라 표시패는 별도 구역입니다.</p>
+        <div class="felt-panel">
+          <div class="layout-block">
+            <span class="cap">손패 (13 + 쯔모)</span>
+            <div id="hand-sample"></div>
+          </div>
+          <div class="layout-block">
+            <span class="cap">도라 표시패</span>
+            <div id="dora-sample" class="dora-indicator"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>개발용 데모 페이지 — 타일 디자인 검토 후 다음 마일스톤 진행.</p>
+    </footer>
+  </div>
+
+  <!-- 로드 순서: tiles.js(파서/렌더) → sprite-gen.js(캔버스) → showcase-controls.js(컨트롤/초기화) -->
+  <script src="js/tiles.js"></script>
+  <script src="js/sprite-gen.js"></script>
+  <script src="js/showcase-controls.js"></script>
+  <script>
+    window.ShowcaseControls.init();
+  </script>
+</body>
+</html>
