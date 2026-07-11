@@ -25,7 +25,7 @@ function js(v) {
 (async () => {
   const db = createDb();
   const r = await db.query(
-    "SELECT id,type,difficulty,prompt,hand,draw,dora,melds,discards,choices,answer,explanation FROM questions WHERE status='active' ORDER BY id"
+    "SELECT id,type,difficulty,prompt,hand,draw,dora,melds,discards,offered,choices,answer,explanation FROM questions WHERE status='active' ORDER BY id"
   );
   await db.end();
 
@@ -35,6 +35,7 @@ function js(v) {
     if (row.dora) q.dora = row.dora;
     if (row.melds) q.melds = row.melds;
     if (row.discards) q.discards = row.discards;
+    if (row.offered) q.offered = row.offered;
     q.choices = row.choices; q.answer = row.answer; q.explanation = row.explanation;
     return q;
   });
@@ -66,6 +67,7 @@ function js(v) {
     lines.push('      ' + handParts.join(', ') + ',');
     if (q.melds) lines.push(`      melds: ${js(q.melds)},`);
     if (q.discards) lines.push(`      discards: ${js(q.discards)},`);
+    if (q.offered) lines.push(`      offered: ${js(q.offered)},`);
     lines.push(`      choices: ${js(q.choices)}, answer: ${q.answer},`);
     lines.push(`      explanation: ${js(q.explanation)}`);
     lines.push('    },');

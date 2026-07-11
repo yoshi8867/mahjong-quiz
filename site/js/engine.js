@@ -10,7 +10,7 @@
 (function (global) {
   'use strict';
 
-  var TYPES = ['discard', 'yaku', 'score', 'rule'];
+  var TYPES = ['discard', 'yaku', 'score', 'rule', 'call', 'furiten', 'defense', 'wait'];
   var BOOST = 2; // 약한 유형 최대 가중 배율 = 1 + BOOST
 
   function all() {

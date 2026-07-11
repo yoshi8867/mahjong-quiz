@@ -17,7 +17,15 @@
  */
 'use strict';
 
-const TYPE_PREFIX = { discard: 'd', yaku: 'y', score: 's', rule: 'r' };
+const TYPE_PREFIX = {
+  discard: 'd', yaku: 'y', score: 's', rule: 'r',
+  call: 'c', furiten: 'f', defense: 'b', wait: 'w',
+};
+
+// 손패를 클릭해 답하는 유형 (hand 14−3×melds장 + draw 필수, choices=패 표기)
+const HAND_CLICK_TYPES = new Set(['discard', 'defense']);
+// 13장 텐파이/판단 손패 유형
+const THIRTEEN_TYPES = new Set(['call', 'furiten', 'wait']);
 
 // "123m06p789s11z" → [{suit,num,red}] / 문법 오류 시 throw
 function parseNotation(str) {
@@ -82,33 +90,60 @@ function validateQuestion(q) {
     }
   }
 
-  // 같은 패 5장 금지
+  // offered / discards 파싱 (있으면 문법 검증)
+  let offered = [];
+  if (q.offered != null) {
+    try {
+      offered = parseNotation(q.offered);
+      if (offered.length !== 1) err('offered must be exactly 1 tile');
+    } catch (e) { err('offered: ' + e.message); }
+  }
+  let riverTiles = [];
+  if (q.discards != null) {
+    try { riverTiles = parseNotation(q.discards); }
+    catch (e) { err('discards: ' + e.message); }
+  }
+
+  // 같은 패 5장 금지 (손패+멜드+강+offered 는 물리적으로 서로 다른 패)
   const counts = {};
-  for (const t of hand.concat(meldTiles)) {
+  for (const t of hand.concat(meldTiles, riverTiles, offered)) {
     counts[tileKey(t)] = (counts[tileKey(t)] || 0) + 1;
     if (counts[tileKey(t)] > 4) err(`more than 4 of ${tileKey(t)}`);
   }
 
-  if (q.type === 'discard') {
-    const meldSets = Array.isArray(q.melds) ? q.melds.length : 0;
+  const meldSets = Array.isArray(q.melds) ? q.melds.length : 0;
+  const inHand = (notation) => {
+    try {
+      const t = parseNotation(notation)[0];
+      return hand.some((h) => tileKey(h) === tileKey(t));
+    } catch (e) { return false; }
+  };
+
+  if (HAND_CLICK_TYPES.has(q.type)) {
+    // discard / defense: 14−3×melds장 + draw, 손패 클릭으로 답변
     const expect = 14 - meldSets * 3;
-    if (hand.length !== expect) err(`discard hand must be ${expect} tiles (got ${hand.length})`);
-    if (!q.draw) err('discard needs draw');
+    if (hand.length !== expect) err(`${q.type} hand must be ${expect} tiles (got ${hand.length})`);
+    if (!q.draw) err(`${q.type} needs draw`);
     if (Array.isArray(q.choices)) {
-      for (const c of q.choices) if (!isTileNotation(c)) err(`discard choice "${c}" is not tile notation`);
+      for (const c of q.choices) if (!isTileNotation(c)) err(`${q.type} choice "${c}" is not tile notation`);
     }
-    const inHand = (notation) => {
-      try {
-        const t = parseNotation(notation)[0];
-        return hand.some((h) => tileKey(h) === tileKey(t));
-      } catch (e) { return false; }
-    };
     if (q.draw && !inHand(q.draw)) err(`draw "${q.draw}" not in hand`);
     if (Array.isArray(q.choices) && Number.isInteger(q.answer) && q.choices[q.answer] && !inHand(q.choices[q.answer])) {
       err(`answer tile "${q.choices[q.answer]}" not in hand`);
     }
   } else if (q.draw) {
-    err('draw is only for discard type');
+    err('draw is only for discard/defense types');
+  }
+
+  if (THIRTEEN_TYPES.has(q.type)) {
+    const expect = 13 - meldSets * 3;
+    if (hand.length !== expect) err(`${q.type} hand must be ${expect} tiles (got ${hand.length})`);
+  }
+
+  if (q.type === 'call' && !q.offered) err('call needs offered');
+  if (q.type !== 'call' && q.offered) err('offered is only for call type');
+  if ((q.type === 'furiten' || q.type === 'defense') && !q.discards) {
+    err(`${q.type} needs discards (${q.type === 'furiten' ? '내' : '상대'} 버림패 강)`);
   }
 
   return errs;
@@ -142,7 +177,7 @@ if (require.main === module) {
       list = Array.isArray(data) ? data : [data];
     } else {
       const db = require('./db').createDb();
-      const r = await db.query("SELECT id,type,difficulty,prompt,hand,draw,dora,melds,discards,choices,answer,explanation FROM questions WHERE status='active' ORDER BY id");
+      const r = await db.query("SELECT id,type,difficulty,prompt,hand,draw,dora,melds,discards,offered,choices,answer,explanation FROM questions WHERE status='active' ORDER BY id");
       list = r.rows.map((row) => ({ ...row, hand: row.hand || '', melds: row.melds || undefined, draw: row.draw || undefined }));
       await db.end();
     }

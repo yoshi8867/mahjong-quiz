@@ -14,8 +14,22 @@
     discard: '타패 (何切る)',
     yaku: '역 판정',
     score: '점수 계산',
-    rule: '룰 판단'
+    rule: '룰 판단',
+    call: '울기',
+    furiten: '후리텐',
+    defense: '수비',
+    wait: '대기'
   };
+
+  // 손패 클릭으로 답하는 유형(타패 메커니즘 공유)
+  function isPickType(type) { return type === 'discard' || type === 'defense'; }
+
+  // 강(discards) 표시 라벨은 유형에 따라 의미가 다름
+  function discardsLabel(type) {
+    if (type === 'furiten') return '내 버림패';
+    if (type === 'defense') return '상대 버림패 (리치)';
+    return '버림패';
+  }
 
   function el(id) { return document.getElementById(id); }
   function clear(node) { while (node && node.firstChild) node.removeChild(node.firstChild); }
@@ -199,10 +213,36 @@
       } catch (e) { return false; }
     }
 
+    // call 전용: 손패 + 우측에 상대 버림패(offered) 1장을 라벨과 함께 분리 표시
+    function renderHandWithOffered(container, handStr, offeredStr) {
+      var row = document.createElement('div');
+      row.className = 'hand-offer-row';
+      try {
+        row.appendChild(Tiles.renderHand(handStr, { mode: 'sprite' }));
+      } catch (e) { return false; }
+      if (offeredStr) {
+        try {
+          var offTiles = Tiles.parseHand(offeredStr);
+          if (offTiles.length) {
+            var off = document.createElement('div');
+            off.className = 'offered';
+            var ol = document.createElement('span');
+            ol.className = 'field-label';
+            ol.textContent = '상대 버림패';
+            off.appendChild(ol);
+            off.appendChild(Tiles.renderTile(offTiles[0], { mode: 'sprite' }));
+            row.appendChild(off);
+          }
+        } catch (e) { /* offered 파싱 실패 시 손패만 표시 */ }
+      }
+      container.appendChild(row);
+      return true;
+    }
+
     function render(q) {
       current = q;
       answered = false;
-      var isDiscard = (q.type === 'discard');
+      var isPick = isPickType(q.type);
 
       el('q-type').textContent = TYPE_LABEL[q.type] || q.type;
       el('q-diff').textContent = '난이도 ' + q.difficulty;
@@ -212,13 +252,16 @@
       quizMain.dataset.qtype = q.type;
       quizMain.dataset.qdiff = String(q.difficulty);
 
-      // 손패 — discard는 각 패를 클릭 가능하게(쯔모기리 포함), 그 외는 정적 렌더
+      // 손패 — discard/defense는 각 패를 클릭 가능하게(쯔모기리 포함),
+      //   call은 손패 우측에 상대 버림패(offered)를 분리 표시, 그 외는 정적 렌더
       var handWrap = el('q-hand');
       clear(handWrap);
-      if (isDiscard && q.hand) {
+      if (isPick && q.hand) {
         var hint = document.createElement('span');
         hint.className = 'field-label';
-        hint.textContent = '버릴 패를 손패에서 직접 선택하세요.';
+        hint.textContent = (q.type === 'defense')
+          ? '가장 안전한 패를 손패에서 직접 선택하세요.'
+          : '버릴 패를 손패에서 직접 선택하세요.';
         var built = makeHandElement(q.hand, q.draw, onPickTile);
         if (built) {
           handWrap.appendChild(hint);
@@ -227,6 +270,8 @@
         } else {
           handWrap.hidden = !renderTileNotation(handWrap, q.hand);
         }
+      } else if (q.type === 'call' && q.hand) {
+        handWrap.hidden = !renderHandWithOffered(handWrap, q.hand, q.offered);
       } else if (q.hand) {
         handWrap.hidden = !renderTileNotation(handWrap, q.hand);
       } else {
@@ -276,19 +321,21 @@
         try {
           var lbl2 = document.createElement('span');
           lbl2.className = 'field-label';
-          lbl2.textContent = '버림패';
+          lbl2.textContent = discardsLabel(q.type);
           discWrap.appendChild(lbl2);
-          discWrap.appendChild(Tiles.renderDiscards(q.discards, { mode: 'sprite' }));
+          var pond = Tiles.renderDiscards(q.discards, { mode: 'sprite' });
+          pond.classList.add('pond--sub');
+          discWrap.appendChild(pond);
           discWrap.hidden = false;
         } catch (e) { discWrap.hidden = true; }
       } else {
         discWrap.hidden = true;
       }
 
-      // 보기 — discard는 손패 클릭으로 답하므로 보기 버튼을 숨긴다
+      // 보기 — discard/defense는 손패 클릭으로 답하므로 보기 버튼을 숨긴다
       var choicesWrap = el('choices');
       clear(choicesWrap);
-      if (isDiscard) {
+      if (isPick) {
         choicesWrap.hidden = true;
       } else {
         choicesWrap.hidden = false;
@@ -552,7 +599,7 @@
       if (q && q.hand) {
         var handWrap = document.createElement('div');
         handWrap.className = 'q-field';
-        var built = (q.type === 'discard') ? makeHandElement(q.hand, q.draw, null) : null;
+        var built = isPickType(q.type) ? makeHandElement(q.hand, q.draw, null) : null;
         if (built) {
           handWrap.appendChild(built.el);
           card.appendChild(handWrap);
@@ -654,8 +701,8 @@
         global.setTimeout(onDone, 600); // 목록 갱신(정답 시 카드 제거)
       }
 
-      // discard: 손패 클릭(쯔모기리 포함) 방식
-      if (q.type === 'discard') {
+      // discard/defense: 손패 클릭(쯔모기리 포함) 방식
+      if (isPickType(q.type)) {
         var keys = correctKeysOf(q);
         var built = makeHandElement(q.hand, q.draw, function (tile, node, nodes) {
           if (answered) return;

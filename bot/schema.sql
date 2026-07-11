@@ -3,14 +3,15 @@
 
 CREATE TABLE IF NOT EXISTS questions (
   id          text PRIMARY KEY,              -- 'd001' 등 (유형접두어+일련번호)
-  type        text NOT NULL CHECK (type IN ('discard','yaku','score','rule')),
+  type        text NOT NULL CHECK (type IN ('discard','yaku','score','rule','call','furiten','defense','wait')),
   difficulty  int  NOT NULL CHECK (difficulty BETWEEN 1 AND 5),
   prompt      text NOT NULL,
   hand        text,                          -- '234m567m234p33s556s' 표기 (rule 문제는 없을 수 있음)
-  draw        text,                          -- 쯔모패 표기 (discard 전용, 선택)
+  draw        text,                          -- 쯔모패 표기 (discard/defense 전용, 선택)
   dora        text,                          -- 도라 표시패 (선택)
   melds       jsonb,                         -- ["p555m","c123s"] (선택)
-  discards    text,                          -- 버림패 강 (선택)
+  discards    text,                          -- 버림패 강 (furiten=내 강, defense=상대 강, 그 외 선택)
+  offered     text,                          -- 상대 버림패 1장 (call 전용)
   choices     jsonb NOT NULL,                -- 보기 4개 배열
   answer      int  NOT NULL CHECK (answer BETWEEN 0 AND 3),
   explanation text NOT NULL,

@@ -7,7 +7,8 @@
 - DB 원본: Neon Postgres (`DATABASE_URL` — 로컬은 저장소 루트 `.env`, 절대 커밋 금지)
 - 테이블: `questions`(문제은행), `reports`(이의 제기), `bot_runs`(실행 이력) — 정의는 `bot/schema.sql`
 - 배포 사이트는 `/api/questions`로 DB에서 직접 읽는다. `site/js/questions.js`는 file:// 폴백.
-- 문제 스키마·패 표기법: `site/SCHEMA.md` (id는 유형접두어 d/y/s/r + 일련번호)
+- 문제 스키마·패 표기법: `site/SCHEMA.md`
+  (id는 유형접두어 + 일련번호 — discard=d, yaku=y, score=s, rule=r, call=c, furiten=f, defense=b, wait=w)
 - DB 접근: 항상 `bot/db.js`의 `createDb()`를 쓴다 (`await db.query(text, params)` → `{rows}`).
   - 기본은 pg(raw TCP 5432). **클라우드 샌드박스는 5432 egress가 막혀 있으므로 `NEON_HTTP=1`을
     export 하고 실행할 것** — HTTPS(443) 기반 `@neondatabase/serverless`로 전환된다.
@@ -40,6 +41,14 @@
    - discard: hand 14장(+draw 지정, melds 있으면 세트당 -3), 정답이 우케이레 계산상 **명확히 단독 우위**인 손만.
      보기 4개는 전부 hand에 있는 패 표기, choices[answer]가 정답 패.
    - yaku: 성립 역이 논쟁 없이 확정되는 완성형. score: 공식 검산 필수. rule: 표준 룰 기준.
+   - call: hand 13장 + `offered`(상대 버림패 1장) 필수. 퐁/치/스루 판단 — 정답이 이론상 명확한 상황만
+     (역 소멸 여부, 쿠이탕, 역패·도라 퐁, 속도 vs 타점). choices는 텍스트.
+   - furiten: 텐파이 hand 13장 + `discards`(**내** 버림패 강) 필수. 대기 전체를 실제로 나열해
+     강과 대조한 뒤 출제. choices는 텍스트.
+   - defense: hand 14장 + draw 필수 + `discards`(**상대 리치자의** 강) 필수. 겐부츠/스지/자패 안전도
+     기준으로 정답 패가 명확히 최선인 상황만. 보기 4개는 hand의 패 표기, choices[answer]가 정답 패.
+   - wait: 텐파이 hand 13장. 대기패를 **전부 손으로 나열·검산**한 뒤 choices에 "3s·6s·9s" 같은
+     가운뎃점 구분 텍스트로. 오답 보기는 그럴듯한 부분집합/초과집합으로.
    - 기존 문제와 중복(같은 손패/같은 논점) 금지: `SELECT hand, prompt FROM questions WHERE type=...`로 대조.
    - 해설은 "왜 정답인지 + 왜 오답들이 아닌지"를 2~3문장으로.
 4. INSERT 후 `node bot/validate.js` 실행 — FAIL이면 해당 문제를 고치거나 DELETE 후 다시 만든다.

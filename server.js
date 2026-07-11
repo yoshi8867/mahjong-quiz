@@ -103,7 +103,7 @@ async function handleReport(req, res) {
 async function handleQuestions(res) {
   try {
     const r = await pool.query(
-      "SELECT id, type, difficulty, prompt, hand, draw, dora, melds, discards, choices, answer, explanation FROM questions WHERE status = 'active' ORDER BY id"
+      "SELECT id, type, difficulty, prompt, hand, draw, dora, melds, discards, offered, choices, answer, explanation FROM questions WHERE status = 'active' ORDER BY id"
     );
     const list = r.rows.map((row) => {
       const q = {
@@ -115,6 +115,7 @@ async function handleQuestions(res) {
       if (row.dora) q.dora = row.dora;
       if (row.melds) q.melds = row.melds;
       if (row.discards) q.discards = row.discards;
+      if (row.offered) q.offered = row.offered;
       return q;
     });
     sendJson(res, 200, list);

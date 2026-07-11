@@ -447,6 +447,45 @@ input:disabled { cursor: not-allowed; }
   gap: var(--tile-gap);
   justify-content: start;
 }
+/* 강은 손패보다 작게(약 0.7배) — --tile-w만 재선언하면 --tile-h는 자동 파생 */
+.pond--sub {
+  --tile-w: 21px;
+  --tile-h: calc(var(--tile-w) * 248 / 166);
+}
+@media (min-width: 768px) {
+  .pond--sub { --tile-w: 25px; }
+}
+
+/* 울기(call): 손패 + 우측 상대 버림패(offered)를 간격 두고 한 줄에 배치.
+   손패(13장)+offered 1장 = 14장 기준으로 폭을 유동화(÷16 여유)해 모바일에서도
+   줄바꿈 없이 유지. */
+.hand-offer-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+.hand-offer-row .hand,
+.hand-offer-row .offered {
+  --tile-w: min(30px, calc((100vw - 130px) / 16));
+  --tile-h: calc(var(--tile-w) * 248 / 166);
+}
+@media (min-width: 768px) {
+  .hand-offer-row .hand,
+  .hand-offer-row .offered {
+    --tile-w: min(36px, calc((100vw - 130px) / 16));
+  }
+}
+.offered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+.offered .field-label {
+  margin: 0;
+  white-space: nowrap;
+}
 
 /* 도라 표시패 구역 */
 .dora-indicator {
